@@ -3,8 +3,8 @@
 ## Integrantes
 | Nombre | Rol |
 |--------|-----|
-| Camila Nesa | UI (ExportScreen) + ViewModel |
-| [Nombre compañero] | CsvGenerator + Tests |
+| CAMILA ANGELA FUENTES ZUNIGA | UI (ExportScreen) + ViewModel |
+| ALEXANDER VILCA TAPIA | CsvGenerator + Tests |
 
 ## Módulo asignado
 `feature:export` — Módulo 17 · Exportar (CSV)
