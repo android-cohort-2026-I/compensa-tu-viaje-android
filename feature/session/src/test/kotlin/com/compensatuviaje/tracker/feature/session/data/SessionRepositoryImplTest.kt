@@ -140,4 +140,27 @@ class SessionRepositoryImplTest {
         repository.logout()
         assertThat(repository.isLoggedIn()).isFalse()
     }
+
+    @Test
+    fun `session data persists between instances`() = runTest {
+        val session = Session(
+            token = "persist-token",
+            driverName = "María Gómez",
+            truck = Truck("truck-2", "XYZ-789", "Cisterna")
+        )
+
+        // Save session in first repository instance
+        repository.setSession(session)
+
+        // Re-instantiate repository reading from the same context/tokenStorage
+        val repo2 = SessionRepositoryImpl(context, tokenStorage)
+
+        val restoredSession = repo2.current.first()
+        assertThat(restoredSession).isNotNull()
+        assertThat(restoredSession?.token).isEqualTo("persist-token")
+        assertThat(restoredSession?.driverName).isEqualTo("María Gómez")
+        assertThat(restoredSession?.truck?.id).isEqualTo("truck-2")
+        assertThat(restoredSession?.truck?.licensePlate).isEqualTo("XYZ-789")
+        assertThat(restoredSession?.truck?.category).isEqualTo("Cisterna")
+    }
 }
