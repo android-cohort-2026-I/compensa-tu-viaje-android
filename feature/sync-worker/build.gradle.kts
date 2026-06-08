@@ -22,6 +22,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.workmanager)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)
     testImplementation(libs.truth)
