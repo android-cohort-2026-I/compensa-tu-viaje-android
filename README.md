@@ -42,3 +42,9 @@ App Android multi-módulo para el registro GPS de viajes de camiones y compensac
 | `:feature:cloud-mirror` | Réplica Firestore |
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md) para las reglas de cada equipo.
+## Revisión del proyecto
+
+Se realizó una revisión básica de la estructura del proyecto Android, considerando los módulos principales como `app`, `core` y `feature`.
+
+Este aporte ayuda a identificar de forma rápida la organización inicial del repositorio y facilita la comprensión del proyecto para nuevos colaboradores.
+
