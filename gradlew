@@ -6,6 +6,9 @@
 ##
 ##############################################################################
 
+# Reviewed by Gisela Morales Puma
+# Basic review of the Gradle wrapper script for the Android project.
+
 # Attempt to set APP_HOME
 # Resolve links: $0 may be a link
 PRG="$0"
