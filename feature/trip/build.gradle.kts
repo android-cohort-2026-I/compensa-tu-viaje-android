@@ -28,6 +28,8 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)
