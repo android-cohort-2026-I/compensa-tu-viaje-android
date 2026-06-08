@@ -11,6 +11,8 @@ import com.compensatuviaje.tracker.model.Truck
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 
 class SessionRepositoryImpl(
     private val context: Context,
@@ -18,20 +20,22 @@ class SessionRepositoryImpl(
 ) : SessionRepository {
 
     private val sharedPreferences: SharedPreferences by lazy {
-        try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
+        runBlocking(Dispatchers.IO) {
+            try {
+                val masterKey = MasterKey.Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
 
-            EncryptedSharedPreferences.create(
-                context,
-                "secure_session_prefs",
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-        } catch (e: Exception) {
-            context.getSharedPreferences("secure_session_prefs_test", Context.MODE_PRIVATE)
+                EncryptedSharedPreferences.create(
+                    context,
+                    "secure_session_prefs",
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (e: Exception) {
+                context.getSharedPreferences("secure_session_prefs_test", Context.MODE_PRIVATE)
+            }
         }
     }
 
