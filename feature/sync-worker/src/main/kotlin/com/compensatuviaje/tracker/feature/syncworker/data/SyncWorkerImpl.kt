@@ -8,7 +8,10 @@ import com.compensatuviaje.tracker.domain.AppResult
 import com.compensatuviaje.tracker.feature.syncworker.SyncWorkerModule
 import com.compensatuviaje.tracker.model.LatLng
 import com.compensatuviaje.tracker.model.TripStatus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.withTimeoutOrNull
 
 class SyncWorkerImpl(
     context: Context,
@@ -29,7 +32,13 @@ class SyncWorkerImpl(
         }
 
         // 2. Verificar conectividad
-        val isOnline = connectivityMonitor.isOnline.firstOrNull() ?: false
+        val isOnline = withTimeoutOrNull(5000) {
+            @Suppress("UNCHECKED_CAST")
+            (connectivityMonitor.isOnline as Flow<Boolean?>)
+                .filterNotNull()
+                .firstOrNull()
+        } ?: false
+
         if (!isOnline) {
             return Result.success()
         }

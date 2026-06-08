@@ -11,6 +11,8 @@ import com.compensatuviaje.tracker.testing.FakeTripRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -360,5 +362,38 @@ class SyncWorkerImplTest {
 
         val trip = fakeTripRepository.get("trip-1")
         assertThat(trip?.status).isEqualTo(TripStatus.PENDING_END)
+    }
+
+    @Test
+    fun `doWork waits for first non-null network status when initial is null`() = runTest {
+        fakeTripRepository.create(Trip("trip-1", TripStatus.IN_PROGRESS, "2026-06-01T00:00:00Z"))
+        
+        // Connectivity monitor starts with null (simulating loading or transient state)
+        val connectivityFlow = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null)
+        val connectivityMonitor = object : ConnectivityMonitor {
+            @Suppress("UNCHECKED_CAST")
+            override val isOnline: Flow<Boolean> = connectivityFlow as Flow<Boolean>
+        }
+        SyncWorkerModule.connectivityMonitor = connectivityMonitor
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody("""{"success":true,"synced_points_count":0}""")
+        )
+
+        val worker = SyncWorkerImpl(context, createDummyWorkerParams())
+        
+        // Launch doWork in a separate coroutine
+        val workDeferred = async { worker.doWork() }
+        
+        // Yield to let the worker start and suspend on the flow collection
+        yield()
+        
+        // Now emit true (online)
+        connectivityFlow.value = true
+        
+        val result = workDeferred.await()
+        assertThat(result).isEqualTo(ListenableWorker.Result.success())
     }
 }
