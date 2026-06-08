@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.compensatuviaje.tracker.domain.AppResult
 import com.compensatuviaje.tracker.feature.syncworker.SyncWorkerModule
+import com.compensatuviaje.tracker.model.LatLng
 import com.compensatuviaje.tracker.model.TripStatus
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -33,31 +34,58 @@ class SyncWorkerImpl(
             return Result.success()
         }
 
-        // 3. (Manejo de pending_end - Commit 6)
-
         // 4. Leer todos los GpsPoint con synced=false del viaje activo
         val unsyncedPoints = gpsPointRepository.unsynced(activeTrip.id)
 
-        // 5. Si el lote está vacío, retornar success (nada que enviar)
-        if (unsyncedPoints.isEmpty()) {
-            return Result.success()
-        }
-
-        // 6. Calcular current_local_distance_km sumando distancias de todos los puntos en el viaje
+        // 5. Obtener todos los puntos para calcular la distancia actual acumulada
         val allPoints = gpsPointRepository.pointsForTrip(activeTrip.id).firstOrNull() ?: emptyList()
         val currentLocalDistanceKm = distanceCalculator?.totalKm(allPoints) ?: 0.0
 
-        // 7. Llamar MobileApi.syncBatch
-        val syncResult = mobileApi.syncBatch(activeTrip.id, currentLocalDistanceKm, unsyncedPoints)
+        var syncFailed = false
+        if (unsyncedPoints.isNotEmpty()) {
+            // 7. Llamar MobileApi.syncBatch
+            val syncResult = mobileApi.syncBatch(activeTrip.id, currentLocalDistanceKm, unsyncedPoints)
 
-        when (syncResult) {
-            is AppResult.Ok -> {
-                // 8. En éxito: marcar cada punto del lote como synced=true
-                gpsPointRepository.markSynced(unsyncedPoints.map { it.id })
+            when (syncResult) {
+                is AppResult.Ok -> {
+                    // 8. En éxito: marcar cada punto del lote como synced=true
+                    gpsPointRepository.markSynced(unsyncedPoints.map { it.id })
+                }
+                is AppResult.Err -> {
+                    // 9. En error: loguear en Logcat, no marcar nada
+                    Log.e("SyncWorker", "Error syncing batch: ${syncResult.message}")
+                    syncFailed = true
+                }
             }
-            is AppResult.Err -> {
-                // 9. En error: loguear en Logcat, no marcar nada, retornar success
-                Log.e("SyncWorker", "Error syncing batch: ${syncResult.message}")
+        }
+
+        // Si la sincronización de puntos falló, salimos para reintentar en el próximo ciclo
+        if (syncFailed) {
+            return Result.success()
+        }
+
+        // 3. Si el viaje está en pending_end: llamar a POST /end y actualizar estado en Room si 200
+        if (activeTrip.status == TripStatus.PENDING_END) {
+            val lastPoint = allPoints.lastOrNull()
+            val endLatLng = lastPoint?.let { LatLng(it.lat, it.lng) } ?: LatLng(0.0, 0.0)
+            val endAccuracy = lastPoint?.accuracyMeters ?: 0.0
+            val endedAtIso = activeTrip.endedAtIso ?: lastPoint?.timestampIso ?: com.compensatuviaje.tracker.common.Iso8601.now()
+
+            val endResult = mobileApi.endTrip(
+                tripId = activeTrip.id,
+                endedAtIso = endedAtIso,
+                end = endLatLng,
+                accuracyMeters = endAccuracy,
+                totalLocalDistanceKm = currentLocalDistanceKm
+            )
+
+            when (endResult) {
+                is AppResult.Ok -> {
+                    tripRepository.setStatus(activeTrip.id, TripStatus.COMPLETED)
+                }
+                is AppResult.Err -> {
+                    Log.e("SyncWorker", "Error ending trip: ${endResult.message}")
+                }
             }
         }
 
