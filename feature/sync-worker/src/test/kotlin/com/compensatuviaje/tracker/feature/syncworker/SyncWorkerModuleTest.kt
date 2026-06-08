@@ -5,6 +5,6 @@ import org.junit.Test
 
 class SyncWorkerModuleTest {
     @Test fun `placeholder passes`() {
-        assertThat(SyncWorkerModule()).isNotNull()
+        assertThat(SyncWorkerModule).isNotNull()
     }
 }
