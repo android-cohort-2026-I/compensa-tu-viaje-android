@@ -288,6 +288,31 @@ class SyncWorkerImplTest {
     }
 
     @Test
+    fun `doWork sends only unsynced points and does not duplicate`() = runTest {
+        fakeTripRepository.create(Trip("trip-1", TripStatus.IN_PROGRESS, "2026-06-01T00:00:00Z"))
+        fakeGpsPointRepository.insert(GpsPoint(1, "trip-1", "2026-06-01T00:01:00Z", 10.0, 20.0, 50.0, 0.0, 10.0, true))
+        fakeGpsPointRepository.insert(GpsPoint(2, "trip-1", "2026-06-01T00:02:00Z", 10.1, 20.1, 55.0, 0.0, 10.0, false))
+
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody("""{"success":true,"synced_points_count":1}""")
+        )
+
+        val worker = SyncWorkerImpl(context, createDummyWorkerParams())
+        val result = worker.doWork()
+
+        assertThat(result).isEqualTo(ListenableWorker.Result.success())
+
+        val request = mockWebServer.takeRequest()
+        assertThat(request.path).endsWith("/sync")
+
+        val bodyText = request.body.readUtf8()
+        assertThat(bodyText).contains(""""id":2""")
+        assertThat(bodyText).doesNotContain(""""id":1""")
+    }
+
+    @Test
     fun `doWork with pending_end trip calls endTrip and transitions to completed`() = runTest {
         fakeTripRepository.create(Trip("trip-1", TripStatus.PENDING_END, "2026-06-01T00:00:00Z"))
         fakeGpsPointRepository.insert(GpsPoint(1, "trip-1", "2026-06-01T00:01:00Z", -12.0430, -77.0470, 50.0, 0.0, 10.0, true))
