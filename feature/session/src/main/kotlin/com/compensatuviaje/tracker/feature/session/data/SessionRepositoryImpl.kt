@@ -88,6 +88,10 @@ class SessionRepositoryImpl(
         return tokenStorage.get() != null
     }
 
+    suspend fun onUnauthorized() {
+        logout()
+    }
+
     companion object {
         private const val KEY_DRIVER_NAME = "driver_name"
         private const val KEY_TRUCK_ID = "truck_id"

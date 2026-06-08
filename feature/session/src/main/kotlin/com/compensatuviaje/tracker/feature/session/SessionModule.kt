@@ -14,6 +14,10 @@ object SessionModule {
         get() = _sessionRepository ?: throw IllegalStateException("SessionModule not initialized")
 
     fun init(context: Context) {
-        // Will initialize implementations in subsequent commits
+        if (_tokenStorage == null || _sessionRepository == null) {
+            val storage = com.compensatuviaje.tracker.feature.session.data.TokenStorageImpl(context)
+            _tokenStorage = storage
+            _sessionRepository = com.compensatuviaje.tracker.feature.session.data.SessionRepositoryImpl(context, storage)
+        }
     }
 }
