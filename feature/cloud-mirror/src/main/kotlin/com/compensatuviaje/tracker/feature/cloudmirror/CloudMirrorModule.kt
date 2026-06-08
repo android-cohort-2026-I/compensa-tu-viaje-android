@@ -12,18 +12,14 @@ import java.time.Instant
 class CloudMirrorModule(
     private val firestore: FirebaseFirestore
 ) : RemoteMirror {
-
     override suspend fun mirror(trip: Trip): AppResult<Unit> {
-
         if (trip.status != TripStatus.COMPLETED) {
             return AppResult.Err(
                 ErrorKind.VALIDATION,
                 "Only completed trips can be mirrored"
             )
         }
-
         return try {
-
             val document = mapOf(
                 "id" to trip.id,
                 "status" to trip.status.name,
@@ -34,7 +30,6 @@ class CloudMirrorModule(
                 "co2Kg" to trip.co2Kg,
                 "mirroredAt" to Instant.now().toString()
             )
-
             firestore
                 .collection("trips")
                 .document(trip.id)
