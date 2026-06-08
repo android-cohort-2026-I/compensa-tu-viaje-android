@@ -9,6 +9,7 @@ import com.compensatuviaje.tracker.model.Truck
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import app.cash.turbine.test
 import org.junit.Before
 import org.junit.Test
@@ -180,5 +181,29 @@ class SessionRepositoryImplTest {
             repository.logout()
             assertThat(awaitItem()).isNull()
         }
+    }
+
+    @Test
+    fun `auto logout triggers immediately if token is near expiration`() = runTest {
+        // Create a mock token expiring in 10 seconds (less than 60 seconds threshold)
+        val expTimeSeconds = (System.currentTimeMillis() / 1000) + 10
+        val payloadJson = """{"exp":$expTimeSeconds}"""
+        val payloadBase64 = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(payloadJson.toByteArray(Charsets.UTF_8))
+        val mockJwt = "header.$payloadBase64.signature"
+
+        val session = Session(
+            token = mockJwt,
+            driverName = "Juan Pérez",
+            truck = Truck("truck-1", "ABC-123", "Semirremolque")
+        )
+
+        repository.setSession(session)
+
+        // Yield to allow the launched coroutine to execute immediately
+        kotlinx.coroutines.yield()
+
+        // Should be logged out automatically because expiration is < 60s
+        assertThat(repository.isLoggedIn()).isFalse()
+        assertThat(repository.current.first()).isNull()
     }
 }

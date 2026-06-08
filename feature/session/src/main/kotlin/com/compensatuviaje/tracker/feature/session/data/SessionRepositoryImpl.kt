@@ -13,11 +13,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 class SessionRepositoryImpl(
     private val context: Context,
     private val tokenStorage: TokenStorage
 ) : SessionRepository {
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var expirationJob: Job? = null
 
     private val sharedPreferences: SharedPreferences by lazy {
         runBlocking(Dispatchers.IO) {
@@ -60,6 +68,7 @@ class SessionRepositoryImpl(
                     driverName = driverName,
                     truck = Truck(truckId, licensePlate, category)
                 )
+                startExpirationTimer(token)
             }
         }
     }
@@ -74,9 +83,11 @@ class SessionRepositoryImpl(
             .apply()
 
         _current.value = session
+        startExpirationTimer(session.token)
     }
 
     override suspend fun logout() {
+        expirationJob?.cancel()
         tokenStorage.clear()
         sharedPreferences.edit()
             .remove(KEY_DRIVER_NAME)
@@ -94,6 +105,40 @@ class SessionRepositoryImpl(
 
     suspend fun onUnauthorized() {
         logout()
+    }
+
+    private fun extractExpirationFromJwt(token: String): Long? {
+        return try {
+            val parts = token.split(".")
+            if (parts.size >= 2) {
+                val payloadBytes = java.util.Base64.getUrlDecoder().decode(parts[1])
+                val payloadString = String(payloadBytes, Charsets.UTF_8)
+                val expMatch = Regex(""""exp"\s*:\s*(\d+)""").find(payloadString)
+                expMatch?.groupValues?.get(1)?.toLongOrNull()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun startExpirationTimer(token: String) {
+        expirationJob?.cancel()
+        val expSeconds = extractExpirationFromJwt(token) ?: return
+        val expMillis = expSeconds * 1000
+        val delayMs = expMillis - 60000 - System.currentTimeMillis()
+
+        if (delayMs <= 0) {
+            coroutineScope.launch {
+                logout()
+            }
+        } else {
+            expirationJob = coroutineScope.launch {
+                delay(delayMs)
+                logout()
+            }
+        }
     }
 
     companion object {
