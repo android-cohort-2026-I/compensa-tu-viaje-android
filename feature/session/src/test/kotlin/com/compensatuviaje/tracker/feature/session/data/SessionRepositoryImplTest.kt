@@ -9,6 +9,7 @@ import com.compensatuviaje.tracker.model.Truck
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import app.cash.turbine.test
 import org.junit.Before
 import org.junit.Test
 import java.lang.reflect.Proxy
@@ -162,5 +163,22 @@ class SessionRepositoryImplTest {
         assertThat(restoredSession?.truck?.id).isEqualTo("truck-2")
         assertThat(restoredSession?.truck?.licensePlate).isEqualTo("XYZ-789")
         assertThat(restoredSession?.truck?.category).isEqualTo("Cisterna")
+    }
+
+    @Test
+    fun `current Flow emits null on logout`() = runTest {
+        val session = Session(
+            token = "logout-token",
+            driverName = "Carlos Ruiz",
+            truck = Truck("truck-3", "LMN-456", "Remolcador")
+        )
+
+        repository.setSession(session)
+
+        repository.current.test {
+            assertThat(awaitItem()).isEqualTo(session)
+            repository.logout()
+            assertThat(awaitItem()).isNull()
+        }
     }
 }
