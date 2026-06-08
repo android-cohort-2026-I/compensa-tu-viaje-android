@@ -1,5 +1,22 @@
 package com.compensatuviaje.tracker.feature.apiclient
 
-// TODO: Implementar MobileApi con Retrofit (4 endpoints: login, startTrip, syncBatch, endTrip)
-// Usa NetworkFactory de :core:network para construir el cliente HTTP
-class ApiClientModule
+import com.compensatuviaje.tracker.domain.MobileApi
+import com.compensatuviaje.tracker.network.MOCK_BASE_URL
+
+/**
+ * Punto de entrada del módulo feature:api-client.
+ * Construye y expone la implementación real de [MobileApi].
+ */
+object ApiClientModule {
+
+    /**
+     * Crea un [MobileApi] listo para usar.
+     *
+     * @param baseUrl       URL base del servidor. Por defecto usa la URL mock del proyecto.
+     * @param tokenProvider Lambda que devuelve el JWT almacenado (o null si no hay sesión).
+     */
+    fun create(
+        baseUrl: String = MOCK_BASE_URL,
+        tokenProvider: () -> String? = { null },
+    ): MobileApi = RetrofitMobileApi(baseUrl, tokenProvider)
+}
