@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -38,16 +39,19 @@ fun VehicleScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                VehicleEvent.Continue -> onContinue()
+                VehicleEvent.CloseSession -> onCloseSession()
+            }
+        }
+    }
+
     VehicleScreen(
         uiState = uiState,
-        onConfirm = {
-            viewModel.onConfirm()
-            onContinue()
-        },
-        onCloseSession = {
-            viewModel.onCloseSession()
-            onCloseSession()
-        },
+        onConfirm = viewModel::onConfirm,
+        onCloseSession = viewModel::onCloseSession,
     )
 }
 
