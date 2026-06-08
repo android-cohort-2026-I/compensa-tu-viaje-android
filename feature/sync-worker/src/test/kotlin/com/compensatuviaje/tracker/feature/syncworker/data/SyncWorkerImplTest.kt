@@ -269,7 +269,7 @@ class SyncWorkerImplTest {
     }
 
     @Test
-    fun `doWork with MockWebServer 500 does not mark batch as synced but returns success`() = runTest {
+    fun `doWork with MockWebServer 500 does not mark batch as synced but returns retry`() = runTest {
         fakeTripRepository.create(Trip("trip-1", TripStatus.IN_PROGRESS, "2026-06-01T00:00:00Z"))
         fakeGpsPointRepository.insert(GpsPoint(1, "trip-1", "2026-06-01T00:01:00Z", 10.0, 20.0, 50.0, 0.0, 10.0, false))
 
@@ -282,7 +282,7 @@ class SyncWorkerImplTest {
         val worker = SyncWorkerImpl(context, createDummyWorkerParams())
         val result = worker.doWork()
 
-        assertThat(result).isEqualTo(ListenableWorker.Result.success())
+        assertThat(result).isEqualTo(ListenableWorker.Result.retry())
 
         val unsynced = fakeGpsPointRepository.unsynced("trip-1")
         assertThat(unsynced).hasSize(1)
@@ -342,7 +342,7 @@ class SyncWorkerImplTest {
     }
 
     @Test
-    fun `doWork with pending_end trip retry keeps status as pending_end when api fails`() = runTest {
+    fun `doWork with pending_end trip retry keeps status as pending_end and returns retry when api fails`() = runTest {
         fakeTripRepository.create(Trip("trip-1", TripStatus.PENDING_END, "2026-06-01T00:00:00Z"))
         fakeGpsPointRepository.insert(GpsPoint(1, "trip-1", "2026-06-01T00:01:00Z", -12.0430, -77.0470, 50.0, 0.0, 10.0, true))
 
@@ -355,7 +355,7 @@ class SyncWorkerImplTest {
         val worker = SyncWorkerImpl(context, createDummyWorkerParams())
         val result = worker.doWork()
 
-        assertThat(result).isEqualTo(ListenableWorker.Result.success())
+        assertThat(result).isEqualTo(ListenableWorker.Result.retry())
 
         val request = mockWebServer.takeRequest()
         assertThat(request.path).endsWith("/end")

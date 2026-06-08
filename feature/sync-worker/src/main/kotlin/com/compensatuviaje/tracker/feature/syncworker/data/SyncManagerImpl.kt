@@ -44,6 +44,11 @@ class SyncManagerImpl(
         val periodicRequest = PeriodicWorkRequestBuilder<SyncWorkerImpl>(15, TimeUnit.MINUTES)
             .setConstraints(constraints)
             .setInputData(data)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
             .build()
 
         workManager.enqueueUniquePeriodicWork(
@@ -58,6 +63,11 @@ class SyncManagerImpl(
 
         val immediateRequest = OneTimeWorkRequestBuilder<SyncWorkerImpl>()
             .setInputData(data)
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                WorkRequest.MIN_BACKOFF_MILLIS,
+                TimeUnit.MILLISECONDS
+            )
             .build()
 
         workManager.enqueue(immediateRequest)

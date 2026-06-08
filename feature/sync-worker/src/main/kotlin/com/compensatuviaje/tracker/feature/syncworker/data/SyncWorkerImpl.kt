@@ -68,9 +68,9 @@ class SyncWorkerImpl(
             }
         }
 
-        // Si la sincronización de puntos falló, salimos para reintentar en el próximo ciclo
+        // Si la sincronización de puntos falló, retornamos retry para disparar la política de backoff
         if (syncFailed) {
-            return Result.success()
+            return Result.retry()
         }
 
         // 3. Si el viaje está en pending_end: llamar a POST /end y actualizar estado en Room si 200
@@ -88,13 +88,19 @@ class SyncWorkerImpl(
                 totalLocalDistanceKm = currentLocalDistanceKm
             )
 
+            var endFailed = false
             when (endResult) {
                 is AppResult.Ok -> {
                     tripRepository.setStatus(activeTrip.id, TripStatus.COMPLETED)
                 }
                 is AppResult.Err -> {
                     Log.e("SyncWorker", "Error ending trip: ${endResult.message}")
+                    endFailed = true
                 }
+            }
+
+            if (endFailed) {
+                return Result.retry()
             }
         }
 
