@@ -5,6 +5,6 @@ import org.junit.Test
 
 class SessionModuleTest {
     @Test fun `placeholder passes`() {
-        assertThat(SessionModule()).isNotNull()
+        assertThat(SessionModule).isNotNull()
     }
 }
