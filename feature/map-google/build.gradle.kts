@@ -1,14 +1,32 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// --- LÓGICA NUEVA CORREGIDA ---
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    FileInputStream(localPropertiesFile).use { stream ->
+        localProperties.load(stream)
+    }
+}
+val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
+// ------------------------------
+
 android {
     namespace = "com.compensatuviaje.tracker.feature.mapgoogle"
     compileSdk = 35
     defaultConfig {
         minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // --- Inyectar llave al Manifest ---
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -17,6 +35,7 @@ android {
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
 }
+
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:domain"))
