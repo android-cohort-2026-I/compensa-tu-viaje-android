@@ -3,7 +3,6 @@ package com.compensatuviaje.tracker.feature.stats
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,7 +12,8 @@ fun StatsScreen(
     viewModel: StatsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    // Cambiado para evitar usar extensiones que no estén importadas en el gradle
+    val uiState = viewModel.uiState.value
 
     LaunchedEffect(Unit) {
         viewModel.loadTripStatistics()
