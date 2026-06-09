@@ -9,10 +9,10 @@ import kotlinx.flow.StateFlow
 import kotlinx.flow.asStateFlow
 import kotlinx.flow.update
 
-class StatsViewModel : ViewModel() {
+class `StatsViewModel.kt` : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StatsUiState())
-    val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(`StatsUiState.kt`())
+    val uiState: StateFlow<`StatsUiState.kt`> = _uiState.asStateFlow()
 
     fun loadTripStatistics() {
         _uiState.update { it.copy(isLoading = true) }
